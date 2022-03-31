@@ -1,0 +1,45 @@
+service: step-function-sample
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: ap-southeast-1
+
+plugins:
+  - serverless-step-functions
+functions:
+  requestPurchase:
+    handler: handler.purchase
+  requestRefund:
+    handler: handler.refund
+
+stepFunctions:
+  stateMachines:
+    storeWorkflow:
+      name: storeWorkflow
+      definition:
+        StartAt: checkRequest
+        States:
+          checkRequest:
+            Type: Choice
+            Choices:
+              - Variable: $.request
+                StringEquals: "PURCHASE"
+                Next: requestPurchase
+              - Variable: $.request
+                StringEquals: "REFUND"
+                Next: requestRefund
+          requestPurchase:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [requestPurchase, Arn]
+            ResultPath: "$.response"
+            End: true
+          requestRefund:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [requestRefund, Arn]
+            ResultPath: "$.response"
+            End: true
